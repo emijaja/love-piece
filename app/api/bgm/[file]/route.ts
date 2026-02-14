@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 
 const ALLOWED_FILES = new Set([
+  'opening.mp3',
   'yuujin.mp3',
   'koibito.mp3',
   'kyodai.mp3',

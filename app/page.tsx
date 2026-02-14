@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -16,6 +16,7 @@ type ToneType = 'casual' | 'formal' | 'poetic';
 
 export default function Home() {
   const router = useRouter();
+  const openingAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // 画像関連
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -42,6 +43,31 @@ export default function Home() {
       if (savedData.customMessage) setCustomMessage(savedData.customMessage);
       if (savedData.selectedTone) setSelectedTone(savedData.selectedTone);
     }
+  }, []);
+
+  // 初回操作でBGM再生（自動再生制限対策）
+  useEffect(() => {
+    const handleFirstInteraction = async () => {
+      const audio = openingAudioRef.current;
+      if (!audio) return;
+
+      try {
+        await audio.play();
+      } catch (error) {
+        console.warn('BGM autoplay was blocked:', error);
+      } finally {
+        window.removeEventListener('click', handleFirstInteraction);
+        window.removeEventListener('touchstart', handleFirstInteraction);
+      }
+    };
+
+    window.addEventListener('click', handleFirstInteraction, { once: true });
+    window.addEventListener('touchstart', handleFirstInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+    };
   }, []);
 
   // バリデーション
@@ -132,6 +158,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen py-8 px-4">
+      <audio ref={openingAudioRef} src="/api/bgm/opening.mp3" loop preload="auto" />
       <div className="max-w-2xl mx-auto space-y-8">
         {/* ヘッダー */}
         <div className="text-center space-y-4">
