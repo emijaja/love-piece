@@ -14,6 +14,9 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 type ToneType = 'casual' | 'formal' | 'poetic';
 
 export default function Home() {
+  // 画面状態
+  const [screenState, setScreenState] = useState<'input' | 'result'>('input');
+
   // 画像関連
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -75,6 +78,7 @@ export default function Home() {
 
       const data = await response.json();
       setGeneratedText(data.text);
+      setScreenState('result');
     } catch (err) {
       console.error('生成エラー:', err);
       setError(err instanceof Error ? err.message : '予期しないエラーが発生しました');
@@ -132,9 +136,16 @@ export default function Home() {
     }
   };
 
+  // 入力画面に戻る
+  const handleBack = () => {
+    setScreenState('input');
+    setError(null);
+    setIsCopied(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-2xl mx-auto space-y-8">
         {/* ヘッダー */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-2">
@@ -154,75 +165,84 @@ export default function Home() {
           </Alert>
         )}
 
-        {/* メインコンテンツ */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 左カラム: 入力エリア */}
+        {/* 入力+待機画面 */}
+        {screenState === 'input' && (
           <div className="space-y-6">
-            {/* 画像アップロード */}
-            <Card>
-              <CardHeader>
-                <CardTitle>写真をアップロード</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ImageUploadZone
-                  onImageSelect={setSelectedImage}
-                  currentImage={selectedImage}
-                  onReset={handleImageReset}
-                  onError={setError}
-                />
-              </CardContent>
-            </Card>
-
-            {/* トーン選択 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>メッセージのトーン</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ToneSelector selectedTone={selectedTone} onToneChange={setSelectedTone} />
-              </CardContent>
-            </Card>
-
-            {/* フォーム入力 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>メッセージの内容</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RelationshipForm
-                  relationship={relationship}
-                  onRelationshipChange={setRelationship}
-                  occasion={occasion}
-                  onOccasionChange={setOccasion}
-                  customMessage={customMessage}
-                  onCustomMessageChange={setCustomMessage}
-                />
-              </CardContent>
-              <CardFooter>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!isFormValid() || isGenerating}
-                  className="w-full"
-                  size="lg"
-                  aria-label="メッセージを生成"
-                >
-                  {isGenerating ? '生成中...' : 'メッセージを生成'}
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-
-          {/* 右カラム: 結果表示 */}
-          <div className="space-y-6">
-            {isGenerating && (
+            {/* 生成中はローディング表示 */}
+            {isGenerating ? (
               <Card>
                 <CardContent className="pt-6">
                   <LoadingSpinner message="AIが画像を分析してメッセージを生成しています..." />
                 </CardContent>
               </Card>
-            )}
+            ) : (
+              <>
+                {/* 入力フォーム */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>写真をアップロード</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ImageUploadZone
+                      onImageSelect={setSelectedImage}
+                      currentImage={selectedImage}
+                      onReset={handleImageReset}
+                      onError={setError}
+                    />
+                  </CardContent>
+                </Card>
 
-            {generatedText && !isGenerating && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>メッセージのトーン</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ToneSelector selectedTone={selectedTone} onToneChange={setSelectedTone} />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>メッセージの内容</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RelationshipForm
+                      relationship={relationship}
+                      onRelationshipChange={setRelationship}
+                      occasion={occasion}
+                      onOccasionChange={setOccasion}
+                      customMessage={customMessage}
+                      onCustomMessageChange={setCustomMessage}
+                    />
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={!isFormValid() || isGenerating}
+                      className="w-full"
+                      size="lg"
+                      aria-label="メッセージを生成"
+                    >
+                      メッセージを生成
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 結果画面 */}
+        {screenState === 'result' && generatedText && (
+          <div className="space-y-6">
+            {/* 再生成中はローディング表示 */}
+            {isGenerating ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <LoadingSpinner message="メッセージを再生成しています..." />
+                </CardContent>
+              </Card>
+            ) : (
               <GeneratedTextDisplay
                 text={generatedText}
                 tone={selectedTone}
@@ -232,22 +252,11 @@ export default function Home() {
                 isCopied={isCopied}
               />
             )}
-
-            {!generatedText && !isGenerating && (
-              <Card className="border-dashed">
-                <CardContent className="pt-6">
-                  <div className="text-center py-12 text-muted-foreground">
-                    <p className="text-lg">
-                      写真と情報を入力して、
-                      <br />
-                      メッセージを生成してください
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Button onClick={handleBack} className="w-full" variant="outline" size="lg">
+              入力画面に戻る
+            </Button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
