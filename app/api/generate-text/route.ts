@@ -7,7 +7,7 @@ type ToneType = 'casual' | 'formal' | 'poetic';
 
 // リクエストボディの型定義
 interface GenerateTextRequest {
-  imageData: string;  // Base64エンコードされた画像データ（data:image/jpeg;base64,... 形式）
+  imageData: string[];  // Base64エンコードされた画像データの配列（data:image/jpeg;base64,... 形式）
   tone: ToneType;
   relationship: string;
 }
@@ -25,31 +25,34 @@ interface GeminiResponse {
 
 // トーン別のプロンプトテンプレート
 const TONE_PROMPTS: Record<ToneType, string> = {
-  casual: `この写真に写っている人への感謝の気持ちを、親しみやすく温かいトーンで文章にしてください。
+  casual: `これらの写真に写っている人への感謝の気持ちを、親しみやすく温かいトーンで文章にしてください。
 
 要件:
 - カジュアルで親しみやすい表現を使う
 - 「いつもありがとう」「一緒にいてくれて嬉しい」など、身近な言葉を使う
 - 3〜5文程度の長さ
 - 写真から読み取れる状況や雰囲気を踏まえる
+- 複数の写真がある場合は、それぞれの思い出を織り交ぜる
 - 感謝の気持ちが伝わるように`,
 
-  formal: `この写真に写っている人への感謝の気持ちを、丁寧でフォーマルなトーンで文章にしてください。
+  formal: `これらの写真に写っている人への感謝の気持ちを、丁寧でフォーマルなトーンで文章にしてください。
 
 要件:
 - 丁寧で礼儀正しい表現を使う
 - 「お世話になっております」「心より感謝申し上げます」など、フォーマルな言葉を使う
 - 3〜5文程度の長さ
 - 写真から読み取れる状況や雰囲気を踏まえる
+- 複数の写真がある場合は、それぞれの思い出を織り交ぜる
 - 敬意と感謝の気持ちが伝わるように`,
 
-  poetic: `この写真に写っている人への感謝の気持ちを、詩的で感情豊かなトーンで文章にしてください。
+  poetic: `これらの写真に写っている人への感謝の気持ちを、詩的で感情豊かなトーンで文章にしてください。
 
 要件:
 - 詩的で美しい表現を使う
 - 比喩や情景描写を織り交ぜる
 - 3〜5文程度の長さ
 - 写真から読み取れる状況や雰囲気を踏まえる
+- 複数の写真がある場合は、それぞれの思い出を織り交ぜる
 - 深い感謝と愛情が伝わるように`
 };
 
@@ -107,7 +110,7 @@ export async function POST(request: NextRequest) {
     const { imageData, tone, relationship } = body;
 
     // バリデーション
-    if (!imageData) {
+    if (!imageData || !Array.isArray(imageData) || imageData.length === 0) {
       return NextResponse.json(
         { error: '画像データが提供されていません' },
         { status: 400 }
@@ -138,18 +141,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Base64データからMIMEタイプとデータ部分を抽出
-    // imageDataは "data:image/jpeg;base64,/9j/4AAQ..." の形式
-    const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (!matches) {
-      return NextResponse.json(
-        { error: '無効な画像データ形式です' },
-        { status: 400 }
-      );
-    }
+    // 複数の画像をpartsに変換
+    const imageParts = imageData.map(image => {
+      // Base64データからMIMEタイプとデータ部分を抽出
+      // imageは "data:image/jpeg;base64,/9j/4AAQ..." の形式
+      const matches = image.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('無効な画像データ形式です');
+      }
 
-    const mimeType = `image/${matches[1]}`;
-    const base64Data = matches[2];
+      const mimeType = `image/${matches[1]}`;
+      const base64Data = matches[2];
+
+      return {
+        inline_data: {
+          mime_type: mimeType,
+          data: base64Data,
+        },
+      };
+    });
 
     // Gemini API へのリクエスト
     const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -181,13 +191,8 @@ export async function POST(request: NextRequest) {
       contents: [
         {
           parts: [
-            { text: promptParts.join('\n\n') },
-            {
-              inline_data: {
-                mime_type: mimeType,
-                data: base64Data,
-              },
-            },
+            { text: TONE_PROMPTS[tone] },
+            ...imageParts,
           ],
         },
       ],

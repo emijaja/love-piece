@@ -1,7 +1,7 @@
 const SESSION_KEY = 'love-piece-session';
 
 export interface FormData {
-  selectedImage: string | null;
+  selectedImages: string[];
   selectedTone: 'casual' | 'formal' | 'poetic';
   relationship: string;
   occasion: string;
@@ -13,7 +13,7 @@ export interface SessionData extends FormData {
 }
 
 const defaultSessionData: SessionData = {
-  selectedImage: null,
+  selectedImages: [],
   selectedTone: 'casual',
   relationship: '',
   occasion: '',
@@ -45,7 +45,7 @@ export function setSessionData(data: SessionData): void {
 export function getFormData(): FormData | null {
   const data = getSessionData();
   return {
-    selectedImage: data.selectedImage,
+    selectedImages: data.selectedImages,
     selectedTone: data.selectedTone,
     relationship: data.relationship,
     occasion: data.occasion,

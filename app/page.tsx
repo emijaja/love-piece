@@ -18,7 +18,7 @@ export default function Home() {
   const router = useRouter();
 
   // 画像関連
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   // フォーム入力
   const [relationship, setRelationship] = useState<string>('');
@@ -36,7 +36,7 @@ export default function Home() {
   useEffect(() => {
     const savedData = getFormData();
     if (savedData) {
-      if (savedData.selectedImage) setSelectedImage(savedData.selectedImage);
+      if (savedData.selectedImages) setSelectedImages(savedData.selectedImages);
       if (savedData.relationship) setRelationship(savedData.relationship);
       if (savedData.occasion) setOccasion(savedData.occasion);
       if (savedData.customMessage) setCustomMessage(savedData.customMessage);
@@ -46,19 +46,21 @@ export default function Home() {
 
   // バリデーション
   const isFormValid = () => {
-    return selectedImage !== null && relationship.trim() !== '';
+    return selectedImages.length > 0 && relationship.trim() !== '';
   };
 
-  // 画像選択時: sessionStorageに保存
+  // 画像追加時: sessionStorageに保存
   const handleImageSelect = (image: string) => {
-    setSelectedImage(image);
-    setFormData({ selectedImage: image });
+    const newImages = [...selectedImages, image];
+    setSelectedImages(newImages);
+    setFormData({ selectedImages: newImages });
   };
 
-  // 画像リセット
-  const handleImageReset = () => {
-    setSelectedImage(null);
-    setFormData({ selectedImage: null });
+  // 画像削除
+  const handleImageRemove = (index: number) => {
+    const newImages = selectedImages.filter((_, i) => i !== index);
+    setSelectedImages(newImages);
+    setFormData({ selectedImages: newImages });
     setError(null);
   };
 
@@ -101,7 +103,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          imageData: selectedImage,
+          imageData: selectedImages,
           tone: selectedTone,
           relationship,
         }),
@@ -168,8 +170,8 @@ export default function Home() {
                 <CardContent>
                   <ImageUploadZone
                     onImageSelect={handleImageSelect}
-                    currentImage={selectedImage}
-                    onReset={handleImageReset}
+                    currentImages={selectedImages}
+                    onRemoveImage={handleImageRemove}
                     onError={setError}
                   />
                 </CardContent>
