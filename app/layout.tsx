@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "写真から文章を作成",
-  description: "写真をアップロードして文章を自動生成するアプリ",
+  title: "Love Letter Generator",
+  description: "あなたの大切な人へ感謝の気持ちを贈りましょう",
 };
 
 export default function RootLayout({
