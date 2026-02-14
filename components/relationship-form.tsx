@@ -10,6 +10,16 @@ interface RelationshipFormProps {
   onCustomMessageChange: (value: string) => void;
 }
 
+const RELATIONSHIP_OPTIONS = [
+  '友人',
+  '恋人',
+  '兄弟',
+  '両親',
+  '祖父母',
+  '妻、夫',
+  '子供',
+];
+
 export function RelationshipForm({
   relationship,
   onRelationshipChange,
@@ -24,13 +34,20 @@ export function RelationshipForm({
         <Label htmlFor="relationship">
           相手との関係性 <span className="text-destructive">*</span>
         </Label>
-        <Input
+        <select
           id="relationship"
-          placeholder="例: 恋人、友人、家族、同僚"
           value={relationship}
           onChange={(e) => onRelationshipChange(e.target.value)}
           required
-        />
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">選択してください</option>
+          {RELATIONSHIP_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-2">
