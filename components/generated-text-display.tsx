@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import { Copy, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -28,6 +31,15 @@ export function GeneratedTextDisplay({
   isRegenerating,
   isCopied,
 }: GeneratedTextDisplayProps) {
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const element = textAreaRef.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, [text]);
+
   return (
     <Card>
       <CardHeader>
@@ -37,9 +49,13 @@ export function GeneratedTextDisplay({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="bg-muted rounded-lg p-6">
-          <p className="leading-relaxed whitespace-pre-wrap">{text}</p>
-        </div>
+        <textarea
+          ref={textAreaRef}
+          readOnly
+          className="w-full bg-muted rounded-lg p-6 leading-relaxed whitespace-pre-wrap resize-none overflow-hidden"
+          value={text}
+          aria-label="生成されたメッセージ"
+        />
       </CardContent>
       <CardFooter className="flex gap-2">
         <Button variant="outline" onClick={onCopy} aria-label="メッセージをコピー">

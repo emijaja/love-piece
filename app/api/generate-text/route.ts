@@ -98,6 +98,7 @@ const formatPromptSection = (title: string, lines: string[]) => {
 };
 
 const COMPLETION_GUARD_PROMPT = '出力は途中で切らないでください。最後の文を完結させ、文末は「。」「！」「？」のいずれかで終えてください。';
+const RESPONSE_LENGTH_PROMPT = '返事は本文のみ。\n文章は50文字以上200文字以下。';
 
 export async function POST(request: NextRequest) {
   try {
@@ -172,6 +173,7 @@ export async function POST(request: NextRequest) {
       commonPrompt,
       relationshipPrompt,
       COMPLETION_GUARD_PROMPT,
+      RESPONSE_LENGTH_PROMPT,
       TONE_PROMPTS[tone],
     ].filter(Boolean);
 
