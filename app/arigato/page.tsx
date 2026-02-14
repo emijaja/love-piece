@@ -22,6 +22,7 @@ export default function ArigatoPage() {
   const [generatedText, setLocalGeneratedText] = useState<string | null>(null);
   const [selectedTone, setLocalTone] = useState<ToneType>('casual');
   const [selectedImage, setLocalImage] = useState<string | null>(null);
+  const [relationship, setRelationship] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +41,23 @@ export default function ArigatoPage() {
 
     setLocalImage(formData.selectedImage);
     setLocalTone(formData.selectedTone);
+    setRelationship(formData.relationship);
     setLocalGeneratedText(text);
     setIsLoading(false);
   }, [router]);
+
+  const bgmByRelationship: Record<string, string> = {
+    '友人': 'yuujin.mp3',
+    '恋人': 'koibito.mp3',
+    '兄弟': 'kyodai.mp3',
+    '両親': 'ryosin.mp3',
+    '祖父母': 'sohubo.mp3',
+    '妻、夫': 'kekkon.mp3',
+    '子供': 'kodomo.mp3',
+  };
+
+  const bgmFile = relationship ? bgmByRelationship[relationship] : undefined;
+  const bgmSrc = bgmFile ? `/api/bgm/${bgmFile}` : '';
 
   // 再生成
   const handleRegenerate = async () => {
@@ -59,6 +74,7 @@ export default function ArigatoPage() {
         body: JSON.stringify({
           imageData: selectedImage,
           tone: selectedTone,
+          relationship,
         }),
       });
 
@@ -121,6 +137,9 @@ export default function ArigatoPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      {bgmSrc && (
+        <audio src={bgmSrc} autoPlay loop preload="auto" />
+      )}
       <div className="max-w-2xl mx-auto space-y-8">
         {/* ヘッダー */}
         <div className="text-center space-y-4">
