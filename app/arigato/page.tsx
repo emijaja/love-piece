@@ -20,7 +20,7 @@ export default function ArigatoPage() {
   const router = useRouter();
   const [generatedText, setLocalGeneratedText] = useState<string | null>(null);
   const [selectedTone, setLocalTone] = useState<ToneType>('casual');
-  const [selectedImage, setLocalImage] = useState<string | null>(null);
+  const [selectedImages, setLocalImages] = useState<string[]>([]);
   const [relationship, setRelationship] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -38,7 +38,7 @@ export default function ArigatoPage() {
       return;
     }
 
-    setLocalImage(formData.selectedImage);
+    setLocalImages(formData.selectedImages);
     setLocalTone(formData.selectedTone);
     setRelationship(formData.relationship);
     setLocalGeneratedText(text);
@@ -60,7 +60,7 @@ export default function ArigatoPage() {
 
   // 再生成
   const handleRegenerate = async () => {
-    if (!selectedImage) return;
+    if (selectedImages.length === 0) return;
 
     setIsGenerating(true);
     setError(null);
@@ -71,7 +71,7 @@ export default function ArigatoPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageData: selectedImage,
+          imageData: selectedImages,
           tone: selectedTone,
           relationship,
         }),
@@ -162,7 +162,7 @@ export default function ArigatoPage() {
         </div>
       ) : (
         <LetterLayout
-          image={selectedImage}
+          images={selectedImages}
           text={generatedText || ''}
           tone={selectedTone}
           onCopy={handleCopy}

@@ -7,7 +7,7 @@ import { Copy, Check, RefreshCw } from 'lucide-react';
 type ToneType = 'casual' | 'formal' | 'poetic';
 
 interface LetterLayoutProps {
-  image: string | null;
+  images: string[];
   text: string;
   tone: ToneType;
   onCopy: () => void;
@@ -23,7 +23,7 @@ const TONE_BACKGROUNDS: Record<ToneType, string> = {
 };
 
 export function LetterLayout({
-  image,
+  images,
   text,
   tone,
   onCopy,
@@ -38,15 +38,29 @@ export function LetterLayout({
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
           {/* 画像（存在する場合のみ） */}
-          {image && (
+          {images.length > 0 && (
             <div className="w-full">
-              <AspectRatio ratio={4 / 3}>
-                <img
-                  src={image}
-                  alt="思い出の写真"
-                  className="w-full h-full object-cover"
-                />
-              </AspectRatio>
+              {images.length === 1 ? (
+                <AspectRatio ratio={4 / 3}>
+                  <img
+                    src={images[0]}
+                    alt="思い出の写真"
+                    className="w-full h-full object-cover"
+                  />
+                </AspectRatio>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 p-4">
+                  {images.map((image, index) => (
+                    <AspectRatio key={index} ratio={4 / 3}>
+                      <img
+                        src={image}
+                        alt={`思い出の写真 ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    </AspectRatio>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
