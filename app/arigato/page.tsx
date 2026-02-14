@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { GeneratedTextDisplay } from '@/components/generated-text-display';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import { LetterLayout } from '@/components/letter-layout';
 import {
   getFormData,
   getGeneratedText,
@@ -107,7 +106,7 @@ export default function ArigatoPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="min-h-screen py-8 px-4">
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardContent className="pt-6">
@@ -120,55 +119,53 @@ export default function ArigatoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-8">
-        {/* ヘッダー */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <Heart className="w-10 h-10 text-primary" aria-hidden="true" />
-            <h1 className="text-4xl font-bold">メッセージが完成しました</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            大切な人へのメッセージをお送りください
-          </p>
-        </div>
-
-        {/* エラー表示 */}
-        {error && (
+    <>
+      {/* エラー表示 */}
+      {error && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
           <Alert variant="destructive">
             <AlertTitle>エラー</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        )}
-
-        {/* 再生成中はローディング表示 */}
-        {isGenerating ? (
-          <Card>
-            <CardContent className="pt-6">
-              <LoadingSpinner message="メッセージを再生成しています..." />
-            </CardContent>
-          </Card>
-        ) : (
-          <GeneratedTextDisplay
-            text={generatedText || ''}
-            tone={selectedTone}
-            onCopy={handleCopy}
-            onRegenerate={handleRegenerate}
-            isRegenerating={isGenerating}
-            isCopied={isCopied}
-          />
-        )}
-
-        {/* ナビゲーションボタン */}
-        <div className="flex gap-4">
-          <Button onClick={handleBack} className="flex-1" variant="outline" size="lg">
-            入力画面に戻る
-          </Button>
-          <Button onClick={handleNewGeneration} className="flex-1" size="lg">
-            新しくつくる
-          </Button>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* 再生成中はローディング表示 */}
+      {isGenerating ? (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-md px-4">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardContent className="pt-6">
+                <LoadingSpinner message="メッセージを再生成しています..." />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <LetterLayout
+          image={selectedImage}
+          text={generatedText || ''}
+          tone={selectedTone}
+          onCopy={handleCopy}
+          onRegenerate={handleRegenerate}
+          isRegenerating={isGenerating}
+          isCopied={isCopied}
+        />
+      )}
+
+      {/* ナビゲーションボタン */}
+      {!isGenerating && (
+        <div className="px-4">
+          <div className="flex justify-center gap-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4">
+            <Button onClick={handleBack} variant="outline" size="lg">
+              入力画面に戻る
+            </Button>
+            <Button onClick={handleNewGeneration} size="lg">
+              新しくつくる
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
