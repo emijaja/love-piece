@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readFile } from 'fs/promises';
+import path from 'path';
 
 // トーンタイプの定義
 type ToneType = 'casual' | 'formal' | 'poetic';
@@ -7,6 +9,7 @@ type ToneType = 'casual' | 'formal' | 'poetic';
 interface GenerateTextRequest {
   imageData: string;  // Base64エンコードされた画像データ（data:image/jpeg;base64,... 形式）
   tone: ToneType;
+  relationship: string;
 }
 
 // Gemini APIのレスポンス型定義
@@ -50,11 +53,57 @@ const TONE_PROMPTS: Record<ToneType, string> = {
 - 深い感謝と愛情が伝わるように`
 };
 
+const AI_PROMPT_PATH = path.join(process.cwd(), 'docs', 'ai_pronpt.md');
+
+const parseAiPromptSections = (content: string) => {
+  const sections: Record<string, string[]> = {};
+  const lines = content.split(/\r?\n/);
+  let currentSection: string | null = null;
+
+  for (const line of lines) {
+    if (/^\s*-\s+/.test(line) && !/^\s{2,}-\s+/.test(line)) {
+      currentSection = line.replace(/^\s*-\s+/, '').trim();
+      if (currentSection) {
+        sections[currentSection] = [];
+      }
+      continue;
+    }
+
+    if (!currentSection) {
+      continue;
+    }
+
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    if (trimmed.startsWith('-')) {
+      sections[currentSection].push(trimmed.replace(/^[-\s]+/, '').trim());
+    } else {
+      sections[currentSection].push(trimmed);
+    }
+  }
+
+  return sections;
+};
+
+const formatPromptSection = (title: string, lines: string[]) => {
+  if (lines.length === 0) {
+    return '';
+  }
+
+  const body = lines.map((line) => `- ${line}`).join('\n');
+  return `${title}:\n${body}`;
+};
+
+const COMPLETION_GUARD_PROMPT = '出力は途中で切らないでください。最後の文を完結させ、文末は「。」「！」「？」のいずれかで終えてください。';
+
 export async function POST(request: NextRequest) {
   try {
     // リクエストボディの解析
     const body: GenerateTextRequest = await request.json();
-    const { imageData, tone } = body;
+    const { imageData, tone, relationship } = body;
 
     // バリデーション
     if (!imageData) {
@@ -67,6 +116,13 @@ export async function POST(request: NextRequest) {
     if (!tone || !['casual', 'formal', 'poetic'].includes(tone)) {
       return NextResponse.json(
         { error: '無効なトーンが指定されています' },
+        { status: 400 }
+      );
+    }
+
+    if (!relationship || !relationship.trim()) {
+      return NextResponse.json(
+        { error: '相手との関係性が指定されていません' },
         { status: 400 }
       );
     }
@@ -97,11 +153,33 @@ export async function POST(request: NextRequest) {
     // Gemini API へのリクエスト
     const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
+    let relationshipPrompt = '';
+    let commonPrompt = '';
+
+    try {
+      const promptContent = await readFile(AI_PROMPT_PATH, 'utf-8');
+      const sections = parseAiPromptSections(promptContent);
+      const commonLines = sections['共通'] || [];
+      const relationshipLines = sections[relationship] || [];
+
+      commonPrompt = formatPromptSection('共通', commonLines);
+      relationshipPrompt = formatPromptSection(relationship, relationshipLines);
+    } catch (promptError) {
+      console.error('ai_pronpt.md の読み込みに失敗しました:', promptError);
+    }
+
+    const promptParts = [
+      commonPrompt,
+      relationshipPrompt,
+      COMPLETION_GUARD_PROMPT,
+      TONE_PROMPTS[tone],
+    ].filter(Boolean);
+
     const geminiRequestBody = {
       contents: [
         {
           parts: [
-            { text: TONE_PROMPTS[tone] },
+            { text: promptParts.join('\n\n') },
             {
               inline_data: {
                 mime_type: mimeType,
@@ -139,7 +217,10 @@ export async function POST(request: NextRequest) {
     const data: GeminiResponse = await response.json();
 
     // レスポンスから生成されたテキストを抽出
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const generatedText = data.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text)
+      .filter(Boolean)
+      .join('');
 
     if (!generatedText) {
       console.error('Gemini API レスポンスにテキストが含まれていません:', data);

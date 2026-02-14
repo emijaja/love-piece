@@ -103,6 +103,7 @@ export default function Home() {
         body: JSON.stringify({
           imageData: selectedImage,
           tone: selectedTone,
+          relationship,
         }),
       });
 
